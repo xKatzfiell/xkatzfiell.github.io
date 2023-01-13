@@ -1,242 +1,40 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html>
-	
-
-<head>
-		<title> Katzfiell</title>
-		<link rel="icon" href="assets/favicon.ico" type="image/x-icon" />
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="stylesheet" href="assets/css/main.css" />
-		<link rel="stylesheet" href="assets/css/corruption.css" />
-		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
-		<script src="assets/js/corruption.js"></script>
-	</head>
-	<body class="is-preload">
-		<div id="wrapper">
-			<!--<div id="bg"></div>-->
-			<!--<div id="overlay"></div>-->
-			<div id="main">
-				<!-- Header -->
-					<header id="header">
-						<h1>Katzfiell</h1>
-						<p>16 Y/O &nbsp;&bull;&nbsp; JR. Developer &nbsp;&bull;&nbsp; Software &nbsp;&bull;&nbsp; Gamer &nbsp;&bull;&nbsp; Music</p>
-						<nav>
-							<ul>
-								<li><a href="https://twitter.com/Katzfiell_" target="_blank" class="icon brands fa-twitter"><span class="label">Twitter</span></a></li>
-								<li><a href="https://www.instagram.com/mcanylmz.png/" target="_blank" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li>
-								<li><a href="https://steamcommunity.com/id/Katzfiell_/" target="_blank" class="icon brands fa-steam"><span class="label">Steam</span></a></li>
-								<li><a href="https://open.spotify.com/user/oj3424tldzzfiel383qsjycbm?si=4cedb045948841c7" target="_blank" class="icon brands fa-spotify"><span class="label">Spotify</span></a></li>
-								<li><a href="https://discord.gg/mmffYKjrTW" target="_blank" class="icon brands fa-discord"><span class="label">Discord</span></a></li>
-								<li><a href="https://github.com/xKatzfiell" target="_blank" class="icon brands fa-github"><span class="label">Github</span></a></li>
-								<li><a href="mailto:katzfielldestek@gmail.com" class="icon solid fa-envelope"><span class="label">Email</span></a></li>
-							</ul>
-						</nav>
-</header>
-			<div id="alphadiv">
-				<a id="opak" class="twitter-timeline" data-lang="tr" data-width="500" data-height="265" data-theme="dark" href="https://twitter.com/Katzfiell_?ref_src=twsrc%5Etfw">Tweets by Katzfiell_</a> <script async src="../platform.twitter.com/widgets.js" charset="utf-8"></script>
-			</div>
-
-				<!-- Footer 
-					<footer id="footer">
-						<span class="copyright">&copy; Untitled. Design: <a href="http://html5up.net">HTML5 UP</a>.</span>
-					</footer>-->
-
-			</div>
-		</div>
-		<script>
-			window.onload = function() { document.body.classList.remove('is-preload'); }
-			window.ontouchmove = function() { return false; }
-			window.onorientationchange = function() { document.body.scrollTop = 0; }
-		</script>
-		<canvas id="webgl" width="500" height="1758"></canvas>
-
-	<script id="vertexShader" type="x-shader/x-vertex">
-	  attribute vec4 a_position;
-	  
-	  uniform mat4 u_modelViewMatrix;
-	  uniform mat4 u_projectionMatrix;
-	  
-	  void main() {
-		gl_Position = a_position;
-	  }
-	</script>
-	<script id="fragmentShader" type="x-shader/x-fragment">
-	  #extension GL_OES_standard_derivatives : enable
-	  precision highp float;
-	  
-	  uniform vec2 u_resolution;
-	  uniform vec2 u_mouse;
-	  uniform vec2 u_oldmouse;
-	  uniform float u_time;
-	  uniform sampler2D u_noise;
-	  
-	  uniform int u_frame;
-	  
-	  uniform sampler2D u_b_buffer;
-	  uniform bool u_buffer_pass;
-	  
-	  #define PI 3.141592653589793
-	  
-	  vec2 getScreenSpace() {
-		vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
-		
-		return uv;
-	  }
-	  
-	  float sdSegment( in vec2 p, in vec2 a, in vec2 b ) {
-		vec2 pa = p-a, ba = b-a;
-		float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
-		return length( pa - ba*h );
-	  }
-	  
-	  vec4 render_effect() {
-		vec2 uv = getScreenSpace();
-		vec2 oldmouse = u_oldmouse.xy;
-		vec2 mouse = vec2(0);
-		
-		return vec4(vec3(smoothstep(.02,.0,sdSegment(uv, oldmouse, mouse))), 1.);
-	  }
-	  
-	  vec4 blurBuffer(vec2 uv) {
-		vec3 pixs = vec3(1./u_resolution.xy, 0.);
-		
-		vec4 sample = texture2D(u_b_buffer, uv + pixs.zy);
-		sample += texture2D(u_b_buffer, uv - pixs.zy);
-		sample += texture2D(u_b_buffer, uv + pixs.xz);
-		sample += texture2D(u_b_buffer, uv - pixs.xz);
-		
-		sample *= .25;
-		
-		return sample;
-	  }
-
-	  vec2 diagonalhash2(vec2 p) {
-		return fract(vec2(sin((p.x + p.y) * 15.543) * 73964.686, sin((p.x + p.y) * 55.8543)*28560.986));
-	  }
-	  
-	  vec3 getColour(float d) {
-		vec3 c = vec3(0.15);
-		if( d <= .25 ) {
-		  c = vec3(.7);
-		} else if( d <= .5 ) {
-		  c = vec3(0.4);
-		} else if( d <= .75 ) {
-		  c = vec3(0.);
-		}
-		
-		return c;
-	  }
-	  
-	  vec3 pattern(vec2 uv, vec2 m) {
-		
-		vec2 grid = floor(uv);
-		vec2 subuv = fract(uv);
-		
-		vec2 rand = diagonalhash2(grid);
-		vec2 rand2 = diagonalhash2(grid + 100.);
-		float shade = 0.;
-		float df;
-		
-		// float s = sin(u_time);
-		// float c = cos(u_time);
-		// subuv *= mat2(c, -s, s, c);
-		
-		if( rand.x <= .25 ) {
-		  df = subuv.x - subuv.y; // tl
-		} else if( rand.x <= .5 ) {
-		  df = 1. - subuv.y - subuv.x;
-		} else if( rand.x <= .75 ) {
-		  df = subuv.y - subuv.x;
-		} else if( rand.x <= 1. ) {
-		  // subuv += .1;
-		  df = subuv.y - 1. + subuv.x;
-		}
-		
-		shade = sin(df * floor(20. * rand.x * rand.y));
-		shade += sin(df * rand.x * rand.y);
-		float aa = rand.x * rand.y * .001;
-		shade = smoothstep(.0, aa, shade);
-		
-		float mouseMask = smoothstep(.1, .3, length(m));
-		vec3 c1 = mix(getColour(rand.x), getColour(rand2.x), mouseMask);
-		vec3 c2 = mix(getColour(rand.y), getColour(rand2.y), mouseMask);
-		
-		return mix(c1, c2, shade );
-	  }
-
-	  vec3 mainb() {
-		
-		vec2 uv = gl_FragCoord.xy+gl_FragCoord.xy-floor(u_resolution.xy);
-		float fade = length(getScreenSpace());
-
-		uv = vec2(log(length(uv)/u_resolution.y)-2.3*u_time*.2+u_mouse.y, atan(uv.y,uv.x)+u_time*.1+u_mouse.x );
-		//uv *= 4.;
-		// float s = sin(1.);
-		// float c = cos(1.);
-		// uv = 1.911*uv*mat2(c,-1,1,1);
-		uv = 1.911*uv*mat2(1.,-1,.9,1);
-		// uv += vec2(u_time, 0.).yx;
-		
-		// gl_FragColor = texture2D(u_noise, uv + diagonalhash2(uv + u_time)) * .2;
-		
-		vec2 m = vec2(0) - (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
-		
-		
-		return pattern(uv, m) * ((smoothstep(0., 1., fade*2.)) + .1);
-	  }
-	  
-	  float d;
-	  float lookup(vec2 p, float dx, float dy) {
-		  vec2 uv = (p.xy + vec2(dx * d, dy * d)) / u_resolution.xy;
-		  vec4 c = texture2D(u_b_buffer, uv.xy);
-
-		// return as luma
-		  return 0.2126*c.r + 0.7152*c.g + 0.0722*c.b;
-	  }
-	  
-	  #define ABBERATION
-	  
-	  void main() {
-		vec4 tex = texture2D(u_b_buffer, gl_FragCoord.xy/u_resolution.xy);
-		// tex = blurBuffer(gl_FragCoord.xy/u_resolution.xy);
-		if(u_buffer_pass) {
-		  vec2 uv = gl_FragCoord.xy/u_resolution.x;
-		  // vec3 tex1 = (texture2D(u_b_buffer, gl_FragCoord.xy/u_resolution.xy).rgb);
-		  vec3 tex1 = blurBuffer(gl_FragCoord.xy/u_resolution.xy).rgb;
-		  vec3 col = mainb()*1.2-.2;
-		  #ifdef ABBERATION
-		  vec3 tex2 = blurBuffer(gl_FragCoord.xy/u_resolution.xy*(1. - sin(u_time)*.0125)).rgb;
-		  float diff = col.g - tex2.g;
-		  if(diff > 0.) {
-			col.r *= 1.+ diff;
-			tex1.g += diff * .025;
-		  } else if(diff < 0.) {
-			col.b *= 1. +abs(diff);
-			tex1.g -= diff * .025;
-		  }
-		  #endif
-		  float t = clamp(sin(u_time*.5)*.5+.5, 0., .5);
-		  // t = 1.;
-		  gl_FragColor = vec4(tex1*((t)*.099+.9) + col*clamp(.00953, .1, t) - clamp(1. / tex1.gbr, -.015, .015)*.25, 1.);
-		  gl_FragColor += texture2D(u_noise, uv + diagonalhash2(uv + u_time*2.)) * .05 - .025;
-		  // gl_FragColor = vec4(mainb(), 1.);
-		} else {
-		  d = 1.; // kernel offset
-		  vec3 tex1 = (texture2D(u_b_buffer, gl_FragCoord.xy/u_resolution.xy).rgb);
-		  
-		  vec2 uv = getScreenSpace();
-		  
-		  gl_FragColor = texture2D(u_noise, uv + diagonalhash2(uv + u_time)) * .2;
-
-		  // gl_FragColor = vec4(vec3(smoothstep(0., 10., max(g, g2))), 1.);
-		  gl_FragColor += vec4(
-			vec3(tex1), 1.);
-		}
-	  }
-	  
-	</script>
-	</body>
-
-
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Terminal</title>
+    <link rel="stylesheet" type="text/css" media="screen" href="css/style.css" />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-QHWQ6NEY0D"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    
+      gtag('config', 'G-QHWQ6NEY0D');
+    </script>
+    <link rel="icon" href="https://cdn.discordapp.com/attachments/885938056090251325/1063493318371180584/favicon.ico">
+  </head>
+  <body>
+    <div id="terminal">
+      <a id="before"></a>
+    </div>
+    <div id="command" onclick="$('texter').focus();">
+      <textarea
+        type="text"
+        id="texter"
+        onkeyup="typeIt(this, event)"
+        onkeydown="typeIt(this, event); moveIt(this.value.length, event)"
+        onkeypress="typeIt(this, event);"
+      ></textarea>
+      <div id="liner">
+        <span id="typer"></span><b class="cursor" id="cursor">█</b>
+      </div>
+    </div>
+    
+    <script src="js/caret.js"></script>
+    <script src="js/commands.js"></script>
+    <script src="js/main.js"></script>
+  </body>
 </html>
